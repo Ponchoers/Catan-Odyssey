@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="app-header">
+            <h1>Game Tracker</h1>
+            <button class="button button-warning" onclick="resetDatabase()">Reset Database</button>
+        </header>
+        
+        <!-- Player Stats Section -->
+        <div class="section-container">
+            <h2 class="section-title">Player Rankings</h2>
+            <table id="statsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th>Games</th>
+                        <th>Victories</th>
+                        <th>Worst Performer</th>
+                        <th>W/L Rate</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="playerTableBody">
+                    <!-- Players will be added here -->
+                </tbody>
+            </table>
+
+            <button class="button" onclick="showAddPlayerForm()">
+                <span class="button-icon">+</span> Add Player
+            </button>
+        </div>
+
+        <!-- Game Recording Form -->
+        <div class="section-container game-form">
+            <h2 class="section-title">Record Game</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Date:</label>
+                    <input type="date" id="gameDate">
+                </div>
+                <div class="form-group">
+                    <label>Game Type:</label>
+                    <select id="gameType">
+                        <option value="">Select game type...</option>
+                        <option value="Traditional">Traditional</option>
+                        <option value="Inca">Inca</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Select Players:</label>
+                <div id="playerSelection" class="checkbox-grid">
+                    <!-- Player checkboxes will be added here -->
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Winner:</label>
+                    <select id="winnerSelect">
+                        <option value="">Select winner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Worst Performer:</label>
+                    <select id="worstPerformerSelect">
+                        <option value="">Select worst performer...</option>
+                    </select>
+                </div>
+            </div>
+            <button class="button button-primary" onclick="recordGame()">Save Game</button>
+        </div>
+
+        <!-- Match History Section -->
+        <div class="section-container history-section">
+            <h2 class="section-title">Match History</h2>
+            
+            <!-- Filters -->
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label>Date Range:</label>
+                    <input type="date" id="filterStartDate">
+                    <span>to</span>
+                    <input type="date" id="filterEndDate">
+                </div>
+                <div class="filter-group">
+                    <label>Game Type:</label>
+                    <select id="filterGameType">
+                        <option value="">All Types</option>
+                        <option value="Traditional">Traditional</option>
+                        <option value="Inca">Inca</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Player:</label>
+                    <select id="filterPlayer">
+                        <option value="">All Players</option>
+                    </select>
+                </div>
+                <button class="button button-secondary" onclick="applyFilters()">Apply Filters</button>
+                <button class="button button-outline" onclick="clearFilters()">Clear Filters</button>
+            </div>
+
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Game Type</th>
+                        <th>Players</th>
+                        <th>Winner</th>
+                        <th>Worst Performer</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <!-- Match history will be added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
