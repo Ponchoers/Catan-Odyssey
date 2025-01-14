@@ -83,10 +83,11 @@ function calculateWinRate(victories, games, worstPerformer) {
     // Calculate basic win rate
     const winRate = (victories / games) * 100;
     
-    // Calculate penalty from worst performances
-    const penaltyRate = (worstPerformer / games) * 100;
+    // Calculate penalty with 0.25 weight factor (25% impact)
+    const penaltyFactor = 0.25;
+    const penaltyRate = (worstPerformer / games) * 100 * penaltyFactor;
     
-    // Final rate is win rate minus penalty
+    // Final rate is win rate minus weighted penalty
     const finalRate = winRate - penaltyRate;
     
     // Ensure we don't go below 0%
