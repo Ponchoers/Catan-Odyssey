@@ -9,9 +9,32 @@ function initializeData() {
     players = savedPlayers ? JSON.parse(savedPlayers) : [];
     matches = savedMatches ? JSON.parse(savedMatches) : [];
     
+    // Calculate sorting rates for existing players
+    players = players.map(player => ({
+        ...player,
+        sortingRate: calculateSortingRate(player.victories, player.games, player.worstPerformer)
+    }));
+    
     updateUI();
     updateHistory();
     updateFilterOptions();
+}
+
+// Calculate displayed win rate (without penalty)
+function calculateDisplayWinRate(victories, games) {
+    if (games === 0) return '0.00%';
+    return ((victories / games) * 100).toFixed(2) + '%';
+}
+
+// Calculate sorting rate (with penalty) - used only for ordering
+function calculateSortingRate(victories, games, worstPerformer) {
+    if (games === 0) return 0;
+    
+    const winRate = (victories / games) * 100;
+    const penaltyFactor = 0.25;
+    const penaltyRate = (worstPerformer / games) * 100 * penaltyFactor;
+    
+    return Math.max(0, winRate - penaltyRate);
 }
 
 function resetDatabase() {
@@ -77,26 +100,6 @@ function clearFilters() {
     updateHistory();
 }
 
-function calculateWinRate(victories, games, worstPerformer) {
-    if (games === 0) return '0.00%';
-    
-    // Calculate basic win rate
-    const winRate = (victories / games) * 100;
-    
-    // Calculate penalty with 0.25 weight factor (25% impact)
-    const penaltyFactor = 0.25;
-    const penaltyRate = (worstPerformer / games) * 100 * penaltyFactor;
-    
-    // Final rate is win rate minus weighted penalty
-    const finalRate = Math.max(0, winRate - penaltyRate);
-    
-    // Debug log to check calculations
-    console.log(`Player stats - Victories: ${victories}, Games: ${games}, Worst: ${worstPerformer}`);
-    console.log(`Calculations - Win Rate: ${winRate}, Penalty: ${penaltyRate}, Final: ${finalRate}`);
-    
-    return finalRate.toFixed(2) + '%';
-}
-
 function formatDate(dateString) {
     if (!dateString) return '';
     
@@ -129,7 +132,8 @@ function showAddPlayerForm() {
             games: 0,
             victories: 0,
             worstPerformer: 0,
-            winRate: '0.00%'
+            winRate: '0.00%',
+            sortingRate: 0
         };
         
         players.push(newPlayer);
@@ -187,7 +191,6 @@ function recordGame() {
     };
 
     matches.push(match);
-    console.log('New match recorded:', match);
 
     players = players.map(player => {
         if (selectedPlayers.includes(player.id.toString())) {
@@ -201,7 +204,8 @@ function recordGame() {
                 games: newGames,
                 victories: newVictories,
                 worstPerformer: newWorstPerformer,
-                winRate: calculateWinRate(newVictories, newGames, newWorstPerformer)
+                winRate: calculateDisplayWinRate(newVictories, newGames),
+                sortingRate: calculateSortingRate(newVictories, newGames, newWorstPerformer)
             };
         }
         return player;
@@ -232,7 +236,8 @@ function deleteMatch(matchId) {
                         games: newGames,
                         victories: newVictories,
                         worstPerformer: newWorstPerformer,
-                        winRate: calculateWinRate(newVictories, newGames, newWorstPerformer)
+                        winRate: calculateDisplayWinRate(newVictories, newGames),
+                        sortingRate: calculateSortingRate(newVictories, newGames, newWorstPerformer)
                     };
                 }
                 return player;
@@ -276,18 +281,12 @@ function saveData() {
 }
 
 function updateUI() {
-    // Sort players by calculated win rate
+    // Sort players by sorting rate (includes penalty)
     players.sort((a, b) => {
-        // Remove the % sign and convert to number for proper comparison
-        const aRate = parseFloat(a.winRate.replace('%', ''));
-        const bRate = parseFloat(b.winRate.replace('%', ''));
-        
-        // If rates are equal, use games played as tiebreaker
-        if (bRate === aRate) {
-            return b.games - a.games;
+        if (b.sortingRate === a.sortingRate) {
+            return b.games - a.games;  // Use games as tiebreaker
         }
-        
-        return bRate - aRate;
+        return b.sortingRate - a.sortingRate;
     });
 
     const tbody = document.getElementById('playerTableBody');
