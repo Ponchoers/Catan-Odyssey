@@ -88,10 +88,13 @@ function calculateWinRate(victories, games, worstPerformer) {
     const penaltyRate = (worstPerformer / games) * 100 * penaltyFactor;
     
     // Final rate is win rate minus weighted penalty
-    const finalRate = winRate - penaltyRate;
+    const finalRate = Math.max(0, winRate - penaltyRate);
     
-    // Ensure we don't go below 0%
-    return Math.max(0, finalRate).toFixed(2) + '%';
+    // Debug log to check calculations
+    console.log(`Player stats - Victories: ${victories}, Games: ${games}, Worst: ${worstPerformer}`);
+    console.log(`Calculations - Win Rate: ${winRate}, Penalty: ${penaltyRate}, Final: ${finalRate}`);
+    
+    return finalRate.toFixed(2) + '%';
 }
 
 function formatDate(dateString) {
@@ -273,9 +276,17 @@ function saveData() {
 }
 
 function updateUI() {
+    // Sort players by calculated win rate
     players.sort((a, b) => {
-        const aRate = parseFloat(a.winRate);
-        const bRate = parseFloat(b.winRate);
+        // Remove the % sign and convert to number for proper comparison
+        const aRate = parseFloat(a.winRate.replace('%', ''));
+        const bRate = parseFloat(b.winRate.replace('%', ''));
+        
+        // If rates are equal, use games played as tiebreaker
+        if (bRate === aRate) {
+            return b.games - a.games;
+        }
+        
         return bRate - aRate;
     });
 
