@@ -41,7 +41,6 @@ function applyFilters() {
 
     let filteredMatches = [...matches];
 
-    // Date range filter
     if (startDate) {
         filteredMatches = filteredMatches.filter(match => 
             match.date >= startDate
@@ -53,14 +52,12 @@ function applyFilters() {
         );
     }
 
-    // Game type filter
     if (gameType) {
         filteredMatches = filteredMatches.filter(match => 
             match.gameType === gameType
         );
     }
 
-    // Player filter
     if (player) {
         filteredMatches = filteredMatches.filter(match => 
             match.players.includes(player) ||
@@ -80,21 +77,32 @@ function clearFilters() {
     updateHistory();
 }
 
+function calculateWinRate(victories, games, worstPerformer) {
+    if (games === 0) return '0.00%';
+    
+    // Calculate basic win rate
+    const winRate = (victories / games) * 100;
+    
+    // Calculate penalty from worst performances
+    const penaltyRate = (worstPerformer / games) * 100;
+    
+    // Final rate is win rate minus penalty
+    const finalRate = winRate - penaltyRate;
+    
+    // Ensure we don't go below 0%
+    return Math.max(0, finalRate).toFixed(2) + '%';
+}
+
 function formatDate(dateString) {
-    // Make sure we have a valid date string
     if (!dateString) return '';
     
     try {
-        // Create a new date object using the input date string
-        // Add time to ensure consistent timezone handling
         const date = new Date(dateString + 'T00:00:00');
         
-        // Check if date is valid
         if (isNaN(date.getTime())) {
-            return dateString; // Return original if invalid
+            return dateString;
         }
 
-        // Format the date
         const options = { 
             year: 'numeric', 
             month: 'long', 
@@ -104,7 +112,7 @@ function formatDate(dateString) {
         return date.toLocaleDateString(undefined, options);
     } catch (error) {
         console.error('Error formatting date:', error);
-        return dateString; // Return original if there's an error
+        return dateString;
     }
 }
 
@@ -112,7 +120,7 @@ function showAddPlayerForm() {
     const name = prompt('Enter player name:');
     if (name && name.trim() !== '') {
         const newPlayer = {
-            id: Date.now(),  // Ensure unique ID
+            id: Date.now(),
             name: name.trim(),
             games: 0,
             victories: 0,
@@ -138,24 +146,17 @@ function removePlayer(id) {
     }
 }
 
-function calculateWinRate(victories, games) {
-    if (games === 0) return '0.00%';
-    return ((victories / games) * 100).toFixed(2) + '%';
-}
-
 function recordGame() {
     const dateInput = document.getElementById('gameDate').value;
     const gameType = document.getElementById('gameType').value;
     const winner = document.getElementById('winnerSelect').value;
     const worstPerformer = document.getElementById('worstPerformerSelect').value;
     
-    // Validation
     if (!dateInput || !gameType || !winner || !worstPerformer) {
         alert('Please fill in all fields');
         return;
     }
 
-    // Get selected players
     const selectedPlayers = Array.from(document.querySelectorAll('input[name="playerCheckbox"]:checked'))
         .map(cb => cb.value);
 
@@ -164,7 +165,6 @@ function recordGame() {
         return;
     }
 
-    // Get player names for the match record
     const playerNames = selectedPlayers.map(id => {
         const player = players.find(p => p.id.toString() === id);
         return player.name;
@@ -173,7 +173,6 @@ function recordGame() {
     const winnerName = players.find(p => p.id.toString() === winner).name;
     const worstPerformerName = players.find(p => p.id.toString() === worstPerformer).name;
 
-    // Create match record with exact date from input
     const match = {
         id: Date.now(),
         date: dateInput,
@@ -183,11 +182,9 @@ function recordGame() {
         worstPerformer: worstPerformerName
     };
 
-    // Add to matches array
     matches.push(match);
     console.log('New match recorded:', match);
 
-    // Update player stats
     players = players.map(player => {
         if (selectedPlayers.includes(player.id.toString())) {
             const newGames = player.games + 1;
@@ -200,31 +197,55 @@ function recordGame() {
                 games: newGames,
                 victories: newVictories,
                 worstPerformer: newWorstPerformer,
-                winRate: calculateWinRate(newVictories, newGames)
+                winRate: calculateWinRate(newVictories, newGames, newWorstPerformer)
             };
         }
         return player;
     });
 
-    // Save all data
     saveData();
-    
-    // Update UI
     updateUI();
     updateHistory();
-    
-    // Reset form
     resetGameForm();
-    
-    // Confirm to user
     alert('Game successfully recorded!');
+}
+
+function deleteMatch(matchId) {
+    if (confirm('Are you sure you want to delete this match?')) {
+        const matchToDelete = matches.find(m => m.id === matchId);
+        
+        if (matchToDelete) {
+            players = players.map(player => {
+                if (matchToDelete.players.includes(player.name)) {
+                    const newGames = player.games - 1;
+                    const newVictories = player.name === matchToDelete.winner ? 
+                        player.victories - 1 : player.victories;
+                    const newWorstPerformer = player.name === matchToDelete.worstPerformer ? 
+                        player.worstPerformer - 1 : player.worstPerformer;
+
+                    return {
+                        ...player,
+                        games: newGames,
+                        victories: newVictories,
+                        worstPerformer: newWorstPerformer,
+                        winRate: calculateWinRate(newVictories, newGames, newWorstPerformer)
+                    };
+                }
+                return player;
+            });
+
+            matches = matches.filter(m => m.id !== matchId);
+            saveData();
+            updateUI();
+            updateHistory();
+        }
+    }
 }
 
 function updateHistoryTable(matchesToShow) {
     const tbody = document.getElementById('historyTableBody');
     tbody.innerHTML = '';
     
-    // Sort matches by date (newest first)
     const sortedMatches = [...(matchesToShow || matches)].sort((a, b) => 
         new Date(b.date) - new Date(a.date)
     );
@@ -237,6 +258,9 @@ function updateHistoryTable(matchesToShow) {
             <td>${match.players.join(', ')}</td>
             <td>${match.winner}</td>
             <td>${match.worstPerformer}</td>
+            <td>
+                <button class="button button-red" onclick="deleteMatch(${match.id})">Delete</button>
+            </td>
         `;
         tbody.appendChild(row);
     });
@@ -248,14 +272,12 @@ function saveData() {
 }
 
 function updateUI() {
-    // Sort players by win rate
     players.sort((a, b) => {
         const aRate = parseFloat(a.winRate);
         const bRate = parseFloat(b.winRate);
         return bRate - aRate;
     });
 
-    // Update player table
     const tbody = document.getElementById('playerTableBody');
     tbody.innerHTML = '';
     
@@ -275,7 +297,6 @@ function updateUI() {
         tbody.appendChild(row);
     });
 
-    // Update player selection checkboxes
     const playerSelection = document.getElementById('playerSelection');
     if (playerSelection) {
         playerSelection.innerHTML = players.map(player => `
@@ -286,7 +307,6 @@ function updateUI() {
         `).join('');
     }
 
-    // Update winner and worst performer selects
     const winnerSelect = document.getElementById('winnerSelect');
     const worstPerformerSelect = document.getElementById('worstPerformerSelect');
     
@@ -315,11 +335,3 @@ function updateHistory() {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', initializeData);
-
-// Add this debugging function to help verify data
-function checkDataStatus() {
-    console.log('Current players:', players);
-    console.log('Current matches:', matches);
-    console.log('LocalStorage players:', localStorage.getItem('gamePlayers'));
-    console.log('LocalStorage matches:', localStorage.getItem('gameMatches'));
-}
